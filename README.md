@@ -19,6 +19,27 @@ git pull origin
 
 Then pass this directory explicitly via `--dllm_dir /path/to/Fast_dLLM_v2_1.5B`.
 
+### One-Command Bootstrap (Recommended)
+
+You can automate Fast-dLLM fetching + repo initialization + dependency install with:
+
+```bash
+./scripts/start.sh
+```
+
+Optional:
+
+```bash
+# include smoke test
+./scripts/start.sh --run-smoke
+
+# skip dependency installation
+./scripts/start.sh --skip-install
+
+# custom Fast-dLLM directory
+./scripts/start.sh --dllm-dir /path/to/Fast_dLLM_v2_1.5B
+```
+
 ## Minimal GPU Templates (1 / 2 / 4 GPUs)
 
 Use these templates to match machine GPU count.
