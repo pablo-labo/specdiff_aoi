@@ -1,0 +1,9 @@
+/logs
+*.pyc
+__pycache__/
+wandb/
+outputs/
+output/
+data2/
+slurm_logs/
+figures/
