@@ -7,6 +7,7 @@ set -euo pipefail
 # 3) optionally run smoke test
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "${ROOT_DIR}/scripts/project_env.sh"
 DLLM_DIR="${ROOT_DIR}/third_party/Fast_dLLM_v2_1.5B"
 PYTHON_BIN="python3"
 SKIP_INSTALL=0
@@ -104,6 +105,9 @@ fi
 echo "[3/4] Export runtime env hints"
 echo "      export DLLM_DIR=\"${DLLM_DIR}\""
 echo "      export WANDB_MODE=offline"
+echo "      HF_HOME=${HF_HOME}"
+echo "      PIP_CACHE_DIR=${PIP_CACHE_DIR}"
+echo "      TMPDIR=${TMPDIR}"
 
 if [[ "${RUN_SMOKE}" -eq 1 ]]; then
   echo "[4/4] Run smoke test"

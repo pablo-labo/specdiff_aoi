@@ -2,6 +2,8 @@
 set -euo pipefail
 
 # Minimal deployment health check.
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "${ROOT_DIR}/scripts/project_env.sh"
 : "${DLLM_DIR:?Set DLLM_DIR to your Fast_dLLM_v2_1.5B directory}"
 
 python failfast.py \

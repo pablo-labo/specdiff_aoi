@@ -2,6 +2,8 @@
 set -euo pipefail
 
 # Generic launcher for local or remote non-Slurm machines.
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "${ROOT_DIR}/scripts/project_env.sh"
 : "${DLLM_DIR:?Set DLLM_DIR to your Fast_dLLM_v2_1.5B directory}"
 
 TARGET_MODEL="${TARGET_MODEL:-Qwen/Qwen2.5-7B-Instruct}"

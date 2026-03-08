@@ -2,6 +2,10 @@
 *.pyc
 __pycache__/
 wandb/
+.venv/
+.cache/
+.tmp/
+third_party/
 outputs/
 output/
 data2/

@@ -40,6 +40,15 @@ Optional:
 ./scripts/start.sh --dllm-dir /path/to/Fast_dLLM_v2_1.5B
 ```
 
+By default, project scripts now pin caches/temp files to project-local dirs:
+- `./.cache/huggingface`
+- `./.cache/pip`
+- `./.cache/wandb`
+- `./.tmp`
+
+This avoids accidentally downloading large files into container ephemeral disk.
+You can still override with explicit env vars (`HF_HOME`, `PIP_CACHE_DIR`, etc.).
+
 ## Minimal GPU Templates (1 / 2 / 4 GPUs)
 
 Use these templates to match machine GPU count.
