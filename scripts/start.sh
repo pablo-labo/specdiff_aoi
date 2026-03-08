@@ -25,6 +25,10 @@ Options:
   --run-smoke           Run smoke test after initialization
   -h, --help            Show this help
 
+Note:
+  Fast-dLLM sync uses "fetch --force + checkout -B origin/main", which resets
+  local changes inside the Fast-dLLM repo.
+
 Examples:
   ./scripts/start.sh
   ./scripts/start.sh --run-smoke
@@ -81,7 +85,10 @@ else
 fi
 
 git -C "${DLLM_DIR}" remote set-url origin https://github.com/ruipeterpan/Fast_dLLM_v2_1.5B.git
-git -C "${DLLM_DIR}" pull origin
+# Upstream may be force-pushed. Avoid merge commits (and local git identity requirement)
+# by hard-syncing to origin/main.
+git -C "${DLLM_DIR}" fetch origin main --force
+git -C "${DLLM_DIR}" checkout -B main origin/main
 
 DLLM_DIR="$(cd "${DLLM_DIR}" && pwd)"
 echo "      Fast-dLLM ready at: ${DLLM_DIR}"
