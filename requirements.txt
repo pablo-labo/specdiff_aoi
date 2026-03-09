@@ -73,5 +73,6 @@ typing-extensions==4.15.0
 typing-inspection==0.4.2
 tzdata==2025.2
 urllib3==2.5.0
+wandb
 xxhash==3.6.0
 yarl==1.22.0
