@@ -159,6 +159,8 @@ Run these checks before full experiments:
 4. Dependencies are installed (`pip install -r requirements.txt` or conda env).
 5. Smoke test succeeds (`DLLM_DIR=... ./scripts/smoke_test.sh`).
 
+If you see `safetensors_rust.SafetensorError: Error while deserializing header: header too large`, the local `DLLM_DIR` weights are usually incomplete or still Git LFS pointer files. Re-run `./scripts/start.sh`, or inside the model repo run `git lfs pull`, then retry the smoke test.
+
 
 ## References
 

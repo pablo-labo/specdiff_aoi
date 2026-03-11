@@ -91,7 +91,15 @@ git -C "${DLLM_DIR}" remote set-url origin https://github.com/ruipeterpan/Fast_d
 git -C "${DLLM_DIR}" fetch origin main --force
 git -C "${DLLM_DIR}" checkout -B main origin/main
 
+if command -v git-lfs >/dev/null 2>&1; then
+  echo "      Syncing large weight files via git-lfs."
+  git -C "${DLLM_DIR}" lfs pull
+else
+  echo "      git-lfs not found; if model weights are pointer files, loading will fail."
+fi
+
 DLLM_DIR="$(cd "${DLLM_DIR}" && pwd)"
+"${ROOT_DIR}/scripts/validate_model_dir.sh" "${DLLM_DIR}"
 echo "      Fast-dLLM ready at: ${DLLM_DIR}"
 
 if [[ "${SKIP_INSTALL}" -eq 0 ]]; then

@@ -31,6 +31,90 @@ from utils import (
     print_sd_trajectory,
 )
 
+
+class LocalModelValidationError(RuntimeError):
+    pass
+
+
+def validate_local_model_dir(model_dir):
+    if not model_dir:
+        raise LocalModelValidationError("--dllm_dir is required")
+    if not os.path.isdir(model_dir):
+        raise LocalModelValidationError(f"dLLM directory does not exist: {model_dir}")
+
+    weight_files = []
+    for root, _, files in os.walk(model_dir):
+        for file_name in files:
+            if file_name.endswith((".safetensors", ".bin", ".pt")):
+                weight_files.append(os.path.join(root, file_name))
+
+    if not weight_files:
+        raise LocalModelValidationError(
+            f"No model weight files were found under --dllm_dir: {model_dir}"
+        )
+
+    suspicious = []
+    marker_prefixes = (
+        "version https://git-lfs.github.com/spec/v1",
+        "<!DOCTYPE html",
+        "<html",
+        "<?xml",
+        "AccessDenied",
+    )
+    for path in sorted(weight_files):
+        size_bytes = os.path.getsize(path)
+        if size_bytes == 0:
+            suspicious.append((path, "empty file"))
+            continue
+
+        if not path.endswith(".safetensors"):
+            continue
+
+        with open(path, "rb") as handle:
+            prefix = handle.read(256)
+        prefix_text = prefix.decode("utf-8", errors="ignore").strip()
+
+        if size_bytes < 1024 * 1024:
+            if any(prefix_text.startswith(marker) for marker in marker_prefixes):
+                suspicious.append((path, "git-lfs/html pointer instead of real weights"))
+            else:
+                suspicious.append((path, f"unexpectedly small safetensors file ({size_bytes} bytes)"))
+            continue
+
+        if any(prefix_text.startswith(marker) for marker in marker_prefixes):
+            suspicious.append((path, "non-binary content at safetensors header"))
+
+    if suspicious:
+        formatted = "\n".join(f"  - {path}: {reason}" for path, reason in suspicious[:5])
+        raise LocalModelValidationError(
+            "Detected invalid local dLLM weight files.\n"
+            f"{formatted}\n"
+            "This usually means the repo contains Git LFS pointer files or an interrupted/corrupted download."
+        )
+
+
+def load_drafter_model(model_dir, gpu_id):
+    validate_local_model_dir(model_dir)
+    try:
+        return AutoModelForCausalLM.from_pretrained(
+            model_dir,
+            torch_dtype="auto",
+            device_map={"": gpu_id},
+            trust_remote_code=True,
+        ).eval()
+    except Exception as exc:
+        message = str(exc)
+        if "Error while deserializing header: header too large" in message:
+            raise LocalModelValidationError(
+                "Failed to load local dLLM weights because at least one safetensors shard looks corrupted.\n"
+                f"Problem directory: {model_dir}\n"
+                "Recommended fix:\n"
+                "  1. Delete the broken local Fast_dLLM_v2_1.5B directory.\n"
+                "  2. Re-run ./scripts/start.sh so weights are fetched again.\n"
+                "  3. If you cloned manually, ensure git-lfs is installed and run: git lfs pull"
+            ) from exc
+        raise
+
 def build_states_for_math(args, target_tokenizer, num_questions=500):
     # assume populate_dataset(args) already done and args.dataset ready
     states = []
@@ -359,12 +443,7 @@ def drafter_worker(worker_id, gpu_id, args, in_q: mp.Queue, out_q: mp.Queue):
     torch.cuda.set_device(gpu_id)
     device = torch.device(f"cuda:{gpu_id}")
 
-    dllm = AutoModelForCausalLM.from_pretrained(
-        args.dllm_dir,
-        torch_dtype="auto",
-        device_map={"": gpu_id},
-        trust_remote_code=True,
-    ).eval()
+    dllm = load_drafter_model(args.dllm_dir, gpu_id)
 
     active_problem_id = None
     active_prefill = None  # giữ KV cho đúng 1 câu hiện tại
@@ -1174,6 +1253,9 @@ if args.num_drafters < 1:
 
 if len(args.drafter_gpus) < args.num_drafters:
     parser.error("--drafter_gpus must provide at least --num_drafters GPU ids")
+
+if args.dllm_dir and os.path.isdir(args.dllm_dir):
+    validate_local_model_dir(args.dllm_dir)
 
 if (args.run_dllm_sf or (not args.baseline_sweep)) and not args.dllm_dir:
     parser.error("--dllm_dir is required when running dLLM drafter")
