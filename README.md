@@ -150,7 +150,7 @@ If you want a lightweight local UI for monitoring run status and timing output, 
 ./scripts/run_dashboard.sh
 ```
 
-Then open `http://127.0.0.1:8000`.
+Then open `http://127.0.0.1:8000` on a local machine, or your remote proxy URL if you are running inside Runpod/Jupyter-style containers. The server now binds to `0.0.0.0` by default so external proxies can reach it.
 
 The dashboard scans local `system_timing*.jsonl` files, including the default output from `failfast.py`, and refreshes automatically while a run is still writing rows.
 
