@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FailFast Dashboard</title>
+  <style>
+    :root {
+      --bg: #f3efe6;
+      --panel: rgba(255, 251, 245, 0.9);
+      --panel-strong: #fffaf0;
+      --text: #1f241f;
+      --muted: #5d675c;
+      --line: rgba(31, 36, 31, 0.12);
+      --accent: #1f7a5c;
+      --accent-soft: rgba(31, 122, 92, 0.12);
+      --warn: #b2592d;
+      --shadow: 0 18px 40px rgba(59, 51, 42, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(31, 122, 92, 0.14), transparent 28%),
+        radial-gradient(circle at top right, rgba(178, 89, 45, 0.14), transparent 24%),
+        linear-gradient(180deg, #f7f2e8 0%, var(--bg) 100%);
+      min-height: 100vh;
+    }
+
+    .shell {
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 28px;
+    }
+
+    .hero {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: end;
+      margin-bottom: 22px;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(2rem, 3vw, 3.4rem);
+      letter-spacing: -0.03em;
+      font-weight: 600;
+    }
+
+    .hero p, .subtle {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 20px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+    }
+
+    .panel-inner {
+      padding: 18px;
+    }
+
+    .run-list {
+      display: grid;
+      gap: 12px;
+      max-height: calc(100vh - 180px);
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .run-card {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .run-card:hover, .run-card.active {
+      transform: translateY(-1px);
+      border-color: rgba(31, 122, 92, 0.4);
+      background: #fffcf7;
+    }
+
+    .run-card h3 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+      word-break: break-word;
+    }
+
+    .run-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 999px;
+      padding: 4px 9px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: 0.85rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat {
+      padding: 14px;
+      border-radius: 18px;
+      background: var(--panel-strong);
+      border: 1px solid var(--line);
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 1.7rem;
+      line-height: 1;
+    }
+
+    .charts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .chart-panel {
+      padding: 14px;
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+    }
+
+    .chart-panel h3 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+    }
+
+    canvas {
+      width: 100%;
+      height: 220px;
+      display: block;
+    }
+
+    .table-wrap {
+      margin-top: 14px;
+      overflow: auto;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.93rem;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: #fcf7ed;
+    }
+
+    .empty {
+      padding: 28px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 1080px) {
+      .layout { grid-template-columns: 1fr; }
+      .run-list { max-height: none; }
+      .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .charts { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 680px) {
+      .shell { padding: 16px; }
+      .hero { align-items: start; flex-direction: column; }
+      .stats-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div>
+        <h1>FailFast Dashboard</h1>
+        <p>Monitor local runs from `outputs/system_timing*.jsonl` without relying on the wandb website.</p>
+      </div>
+      <div class="subtle" id="server-status">Connecting...</div>
+    </section>
+
+    <section class="layout">
+      <aside class="panel">
+        <div class="panel-inner">
+          <div class="subtle" style="margin-bottom: 12px;">Detected runs</div>
+          <div class="run-list" id="run-list"></div>
+        </div>
+      </aside>
+
+      <main class="panel">
+        <div class="panel-inner" id="detail">
+          <div class="empty">Waiting for run data.</div>
+        </div>
+      </main>
+    </section>
+  </div>
+
+  <script>
+    const state = {
+      selectedPath: null,
+      runs: [],
+      pollMs: 2500,
+      charts: [],
+    };
+
+    function fmt(n, digits = 1) {
+      if (n === null || n === undefined || Number.isNaN(Number(n))) return "-";
+      return Number(n).toFixed(digits);
+    }
+
+    function fmtPct(v) {
+      if (v === null || v === undefined) return "-";
+      return `${(Number(v) * 100).toFixed(1)}%`;
+    }
+
+    function fmtTime(iso) {
+      if (!iso) return "-";
+      return new Date(iso).toLocaleString();
+    }
+
+    function lineChart(canvas, values, color, yLabel) {
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width = canvas.clientWidth * devicePixelRatio;
+      const height = canvas.height = canvas.clientHeight * devicePixelRatio;
+      ctx.scale(devicePixelRatio, devicePixelRatio);
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      ctx.clearRect(0, 0, w, h);
+
+      if (!values.length) {
+        ctx.fillStyle = "#5d675c";
+        ctx.font = "14px Georgia";
+        ctx.fillText("No data yet", 14, 24);
+        return;
+      }
+
+      const padding = { top: 18, right: 12, bottom: 24, left: 40 };
+      const innerW = w - padding.left - padding.right;
+      const innerH = h - padding.top - padding.bottom;
+      const minV = Math.min(...values);
+      const maxV = Math.max(...values);
+      const span = maxV - minV || 1;
+
+      ctx.strokeStyle = "rgba(31, 36, 31, 0.12)";
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 4; i += 1) {
+        const y = padding.top + innerH * (i / 3);
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(w - padding.right, y);
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      values.forEach((value, idx) => {
+        const x = padding.left + (idx / Math.max(values.length - 1, 1)) * innerW;
+        const y = padding.top + innerH - ((value - minV) / span) * innerH;
+        if (idx === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      const last = values[values.length - 1];
+      const lastX = padding.left + innerW;
+      const lastY = padding.top + innerH - ((last - minV) / span) * innerH;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#5d675c";
+      ctx.font = "12px Georgia";
+      ctx.fillText(yLabel, 12, 14);
+      ctx.fillText(String(minV.toFixed(1)), 8, h - 8);
+      ctx.fillText(String(maxV.toFixed(1)), 8, 20);
+      ctx.fillText(`round ${values.length}`, w - 72, h - 8);
+    }
+
+    async function getJson(url) {
+      const response = await fetch(url, { cache: "no-store" });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return response.json();
+    }
+
+    function renderRunList() {
+      const root = document.getElementById("run-list");
+      if (!state.runs.length) {
+        root.innerHTML = '<div class="empty">No `system_timing` files found yet. Run `./scripts/run_failfast_local.sh` first.</div>';
+        return;
+      }
+      root.innerHTML = state.runs.map((run) => `
+        <article class="run-card ${run.path === state.selectedPath ? "active" : ""}" data-path="${run.path}">
+          <h3>${run.path}</h3>
+          <div class="run-meta">
+            <span class="badge">${run.rounds} rounds</span>
+            <span>${fmtPct(run.acceptance_rate_round)}</span>
+            <span>${fmt(run.accepted_tok_per_sec_round)} tok/s</span>
+          </div>
+          <div class="subtle" style="margin-top:8px;">Updated ${fmtTime(run.updated_at)}</div>
+        </article>
+      `).join("");
+      root.querySelectorAll(".run-card").forEach((node) => {
+        node.addEventListener("click", () => {
+          state.selectedPath = node.dataset.path;
+          renderRunList();
+          refreshDetail();
+        });
+      });
+    }
+
+    function renderDetail(payload) {
+      const { run, rows } = payload;
+      const latest = rows[rows.length - 1] || {};
+      const root = document.getElementById("detail");
+      root.innerHTML = `
+        <div class="subtle" style="margin-bottom: 6px;">Selected run</div>
+        <h2 style="margin:0 0 8px; word-break:break-word;">${run.path}</h2>
+        <div class="subtle" style="margin-bottom:16px;">Updated ${fmtTime(run.updated_at)}</div>
+
+        <section class="stats-grid">
+          <div class="stat"><div class="stat-label">Rounds</div><div class="stat-value">${run.rounds}</div></div>
+          <div class="stat"><div class="stat-label">Acceptance</div><div class="stat-value">${fmtPct(latest.acceptance_rate_round)}</div></div>
+          <div class="stat"><div class="stat-label">Accepted tok/s</div><div class="stat-value">${fmt(latest.accepted_tok_per_sec_round)}</div></div>
+          <div class="stat"><div class="stat-label">Round wall ms</div><div class="stat-value">${fmt(latest.round_wall_ms)}</div></div>
+        </section>
+
+        <section class="charts">
+          <div class="chart-panel">
+            <h3>Acceptance Rate</h3>
+            <canvas id="chart-acceptance"></canvas>
+          </div>
+          <div class="chart-panel">
+            <h3>Accepted Tokens / Sec</h3>
+            <canvas id="chart-tps"></canvas>
+          </div>
+          <div class="chart-panel">
+            <h3>Round Wall Time</h3>
+            <canvas id="chart-round"></canvas>
+          </div>
+          <div class="chart-panel">
+            <h3>Draft vs Verify GPU Time</h3>
+            <canvas id="chart-gpu"></canvas>
+          </div>
+        </section>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Round</th>
+                <th>Acceptance</th>
+                <th>Tok/s</th>
+                <th>Round ms</th>
+                <th>Draft ms</th>
+                <th>Verify ms</th>
+                <th>Batch</th>
+                <th>Done</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.slice(-25).reverse().map((row, idx) => `
+                <tr>
+                  <td>${rows.length - idx}</td>
+                  <td>${fmtPct(row.acceptance_rate_round)}</td>
+                  <td>${fmt(row.accepted_tok_per_sec_round)}</td>
+                  <td>${fmt(row.round_wall_ms)}</td>
+                  <td>${fmt(row.draft_gpu_ms_max)}</td>
+                  <td>${fmt(row.verify_gpu_ms)}</td>
+                  <td>${row.active_batch_size ?? "-"}</td>
+                  <td>${row.done ?? "-"}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      lineChart(document.getElementById("chart-acceptance"), rows.map((r) => Number(r.acceptance_rate_round || 0) * 100), "#1f7a5c", "%");
+      lineChart(document.getElementById("chart-tps"), rows.map((r) => Number(r.accepted_tok_per_sec_round || 0)), "#b2592d", "tok/s");
+      lineChart(document.getElementById("chart-round"), rows.map((r) => Number(r.round_wall_ms || 0)), "#355c7d", "ms");
+      lineChart(document.getElementById("chart-gpu"), rows.map((r) => Math.max(Number(r.draft_gpu_ms_max || 0), Number(r.verify_gpu_ms || 0))), "#8d6a9f", "ms");
+    }
+
+    async function refreshRuns() {
+      const payload = await getJson("/api/runs");
+      state.runs = payload.runs;
+      document.getElementById("server-status").textContent = `Server time ${fmtTime(payload.server_time)} · refresh ${state.pollMs / 1000}s`;
+      if (!state.selectedPath && state.runs.length) {
+        state.selectedPath = state.runs[0].path;
+      }
+      if (state.selectedPath && !state.runs.some((run) => run.path === state.selectedPath)) {
+        state.selectedPath = state.runs[0]?.path || null;
+      }
+      renderRunList();
+    }
+
+    async function refreshDetail() {
+      const root = document.getElementById("detail");
+      if (!state.selectedPath) {
+        root.innerHTML = '<div class="empty">No run selected.</div>';
+        return;
+      }
+      try {
+        const payload = await getJson(`/api/run?path=${encodeURIComponent(state.selectedPath)}`);
+        renderDetail(payload);
+      } catch (err) {
+        root.innerHTML = `<div class="empty">Failed to load run: ${err.message}</div>`;
+      }
+    }
+
+    async function tick() {
+      try {
+        await refreshRuns();
+        await refreshDetail();
+      } catch (err) {
+        document.getElementById("server-status").textContent = `Dashboard error: ${err.message}`;
+      }
+    }
+
+    tick();
+    setInterval(tick, state.pollMs);
+    window.addEventListener("resize", () => refreshDetail());
+  </script>
+</body>
+</html>

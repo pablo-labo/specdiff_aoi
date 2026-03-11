@@ -142,6 +142,18 @@ python failfast.py \
   --wandb_mode disabled
 ```
 
+## Local Dashboard
+
+If you want a lightweight local UI for monitoring run status and timing output, start:
+
+```bash
+./scripts/run_dashboard.sh
+```
+
+Then open `http://127.0.0.1:8000`.
+
+The dashboard scans local `system_timing*.jsonl` files, including the default output from `failfast.py`, and refreshes automatically while a run is still writing rows.
+
 ## Script Scope (Cluster vs Generic)
 
 - `della/*.sh` and `della/zhuofuc/*.sh` are cluster-specific (Princeton/Slurm paths and env assumptions).
