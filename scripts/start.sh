@@ -13,6 +13,32 @@ PYTHON_BIN="python3"
 SKIP_INSTALL=0
 RUN_SMOKE=0
 
+ensure_git_lfs() {
+  if command -v git-lfs >/dev/null 2>&1; then
+    return 0
+  fi
+
+  echo "      git-lfs not found; attempting automatic installation."
+
+  if command -v apt-get >/dev/null 2>&1; then
+    if [[ "$(id -u)" -eq 0 ]]; then
+      apt-get update
+      apt-get install -y git-lfs
+    elif command -v sudo >/dev/null 2>&1; then
+      sudo apt-get update
+      sudo apt-get install -y git-lfs
+    else
+      echo "[ERROR] git-lfs is required but automatic installation needs root or sudo." >&2
+      return 1
+    fi
+  else
+    echo "[ERROR] git-lfs is required, and this machine does not provide apt-get for automatic installation." >&2
+    return 1
+  fi
+
+  git lfs install
+}
+
 usage() {
   cat <<EOF
 Usage: ./scripts/start.sh [options]
@@ -91,15 +117,12 @@ git -C "${DLLM_DIR}" remote set-url origin https://github.com/ruipeterpan/Fast_d
 git -C "${DLLM_DIR}" fetch origin main --force
 git -C "${DLLM_DIR}" checkout -B main origin/main
 
-if command -v git-lfs >/dev/null 2>&1; then
-  echo "      Syncing large weight files via git-lfs."
-  git -C "${DLLM_DIR}" lfs pull
-else
-  echo "      git-lfs not found; if model weights are pointer files, loading will fail."
-fi
+ensure_git_lfs
+echo "      Syncing large weight files via git-lfs."
+git -C "${DLLM_DIR}" lfs pull
 
 DLLM_DIR="$(cd "${DLLM_DIR}" && pwd)"
-"${ROOT_DIR}/scripts/validate_model_dir.sh" "${DLLM_DIR}"
+bash "${ROOT_DIR}/scripts/validate_model_dir.sh" "${DLLM_DIR}"
 echo "      Fast-dLLM ready at: ${DLLM_DIR}"
 
 if [[ "${SKIP_INSTALL}" -eq 0 ]]; then
